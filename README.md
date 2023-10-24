@@ -16,6 +16,12 @@ For verbose command output during compile
 make V=1
 ```
 
+For compile with debug symbol
+
+```
+make D=1
+```
+
 For cross compile
 
 ```
@@ -24,13 +30,20 @@ make CROSS_COMPILE=<path/to/your/toolchian>
 
 ## Usage
 
-```
-sntpd [-h] [-r] [-m main_ntp_host] [-s side_ntp_host]
+Quick start
 
-Options:
-  -h       Show summary of command line options and exit
-  -m       Main ntp server host (default: cn.pool.ntp.org)
-  -s       Side ntp server host (default: pool.ntp.org)
-  -t       Request interval (second, default: 3600)
-  
+```
+sntpd -d
+```
+
+For usage prompt
+
+```
+sntpd -h
+```
+
+Dry run, will only send sntp request but not upgrade system time
+
+```
+sntp -n
 ```

@@ -5,6 +5,10 @@ ifeq ("$(origin V)", "command line")
   VERBOSE = $(V)
 endif
 
+ifeq ("$(origin D)", "command line")
+  DEBUG = $(D)
+endif
+
 Q = @
 
 ifneq ($(findstring 1, $(VERBOSE)),)
@@ -24,6 +28,10 @@ STRIP		= $(CROSS_COMPILE)strip
 RM      = /usr/bin/rm
 
 CFLAGS =
+
+ifneq ($(findstring 1, $(DEBUG)),)
+  CFLAGS += -g
+endif
 
 sntpd: sntpd.c
 	$(Q)$(CC) -o $@ $(CFLAGS) $(filter %.c, $^)

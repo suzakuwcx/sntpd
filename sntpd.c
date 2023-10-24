@@ -9,6 +9,9 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 
+
+static int dry_run = 0;
+
 static inline int on_string_positive(const char *str) {
     int len = strlen(str);
     int i;
@@ -232,11 +235,11 @@ clean:
 static int set_sock_timeout(int fd, int second) 
 {
     struct timeval tx_tv = { .tv_sec = second }, rx_tv = { .tv_sec = second };
-	if (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tx_tv, sizeof tx_tv) < 0) {
+    if (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tx_tv, sizeof tx_tv) < 0) {
         perror("setsockopt");
         return -1;
     }
-	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &rx_tv, sizeof rx_tv) < 0) {
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &rx_tv, sizeof rx_tv) < 0) {
         perror("setsockopt");
         return -1;
     }
@@ -267,12 +270,12 @@ static int set_sock_timeout(int fd, int second)
  * @endcode
  */
 static inline unsigned long unpack32(unsigned char *p) {
-	unsigned long l = 0;
-	l |= ((unsigned long)p[0]) << 24;
-	l |= ((unsigned long)p[1]) << 16;
-	l |= ((unsigned long)p[2]) <<  8;
-	l |= ((unsigned long)p[3]) <<  0;
-	return l;
+    unsigned long l = 0;
+    l |= ((unsigned long)p[0]) << 24;
+    l |= ((unsigned long)p[1]) << 16;
+    l |= ((unsigned long)p[2]) <<  8;
+    l |= ((unsigned long)p[3]) <<  0;
+    return l;
 }
 
 
@@ -360,23 +363,25 @@ clean:
 
 static int usage(int code)
 {
-	FILE *fp = stdout;
+    FILE *fp = stdout;
 
-	if (code)
-		fp = stderr;
+    if (code)
+        fp = stderr;
 
-	fprintf(fp,
-		"Usage:\n"
-		"  %s [-h] [-m main_ntp_host] [-s side_ntp_host] \n"
-		"\n"
-		"Options:\n"
-		"  -h       Show summary of command line options and exit\n"
+    fprintf(fp,
+        "Usage:\n"
+        "  %s [-h] [-d] [-n] [-m main_ntp_host] [-s side_ntp_host] [-t request_interval] \n"
+        "\n"
+        "Options:\n"
+        "  -h       Show summary of command line options and exit\n"
+        "  -d       Use default parameter to start\n"
+        "  -n       Dry run, will print time to stdout instead of changing system time\n"
         "  -m       Main ntp server host (default: cn.pool.ntp.org)\n"
         "  -s       Side ntp server host (default: pool.ntp.org)\n"
         "  -t       Request interval (second, default: 3600)\n"
-		"\n", "sntpd");
+        "\n", "sntpd");
 
-	return code;
+    return code;
 }
 
 static int main_loop(int loop_period, const char *main, const char *side) {
@@ -389,10 +394,13 @@ static int main_loop(int loop_period, const char *main, const char *side) {
         if (ret < 0) {
             fprintf(stderr, "both ntp request is failed\n");
         }
+        else if (dry_run) {
+            fprintf(stdout, "time from sntp: %d\n", ret);
+        }
         else {
             ret = update_system_time((unsigned long)ret);
             if (ret < 0)
-                fprintf(stderr, "update system time failed\n");
+                fprintf(stderr, "update system time failed\n");            
         }
             
         sleep(loop_period);
@@ -407,16 +415,21 @@ int main(int argc, char *argv[])
     char *main = "cn.pool.ntp.org";
     char *side = "pool.ntp.org";
 
-	while (1) {
-		int c;
+    while (1) {
+        int c;
 
-		c = getopt(argc, argv, "hm:s:t:");
-		if (c == EOF)
-			break;
+        c = getopt(argc, argv, "hdnm:s:t:");
+        if (c == EOF)
+            break;
 
-		switch (c) {
-		case 'h':
-			return usage(0);
+        switch (c) {
+        case 'h':
+            return usage(0);
+        case 'd':
+            show_help = 0;
+        case 'n':
+            show_help = 0;
+            dry_run = 1;
         case 'm':
             show_help = 0;
             main = optarg;
@@ -431,7 +444,7 @@ int main(int argc, char *argv[])
                 loop_period = atoi(optarg);
                 /* the minimal request period should greater than 64 seconds */
                 if (loop_period < 64) {
-                    fprintf(stdout, "The loop period is too short, adjust to 64");
+                    fprintf(stdout, "The loop period is too short, adjust to 64\n");
                     loop_period = 64;                    
                 }
             }
@@ -446,12 +459,12 @@ int main(int argc, char *argv[])
         default:
             return usage(1);
         }
-	}
+    }
 
     if (show_help)
         return usage(1);
 
     main_loop(loop_period, main, side);
 
-	return 0;
+    return 0;
 }
