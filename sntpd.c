@@ -317,7 +317,7 @@ static int update_system_time(unsigned long t) {
  * @brief request T3 time second from ntp server
  *
  * @param hostname the ntp server hostname
- *                    if leave NULL, use default "uk.pool.ntp.org"
+ *                    if leave NULL, use default "in.pool.ntp.org"
  *
  * @return -1 if error occur
  *         T3 second is success
@@ -335,8 +335,8 @@ static int sntp_request(const char *hostname)
 
     sock_fd = udp_connect2(buff, "123");
     if (sock_fd < 0) {
-        fprintf(stderr, "error occur\n");
-        second = -1;
+        fprintf(stderr, "udp connect to ntp server failed: %s\n", buff);
+        return -1;
     }
 
     set_sock_timeout(sock_fd, 30);
